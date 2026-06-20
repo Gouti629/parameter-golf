@@ -11,6 +11,7 @@ import glob
 import io
 import math
 import os
+import wandb
 import random
 import subprocess
 import sys
@@ -735,6 +736,37 @@ def main() -> None:
     args = Hyperparameters()
     zeropower_via_newtonschulz5 = torch.compile(zeropower_via_newtonschulz5)
 
+    # Add Weights and Biases to track our experiments and log training/validation metrics.
+
+    if master_process:
+        wandb.init(
+        project="parameter-golf",
+        name=f"{'tied' if args.tie_embeddings else 'untied'}-seed{args.seed}-{args.run_id[:8]}",
+        config={
+            # Model architecture
+            "vocab_size": args.vocab_size,
+            "num_layers": args.num_layers,
+            "model_dim": args.model_dim,
+            "num_heads": args.num_heads,
+            "num_kv_heads": args.num_kv_heads,
+            "mlp_mult": args.mlp_mult,
+            "tie_embeddings": args.tie_embeddings,
+            # Training
+            "iterations": args.iterations,
+            "train_batch_tokens": args.train_batch_tokens,
+            "warmup_steps": args.warmup_steps,
+            "warmdown_iters": args.warmdown_iters,
+            # Optimizer
+            "matrix_lr": args.matrix_lr,
+            "scalar_lr": args.scalar_lr,
+            "tied_embed_lr": args.tied_embed_lr,
+            "embed_lr": args.embed_lr,
+            "head_lr": args.head_lr,
+            "muon_momentum": args.muon_momentum,
+            "seed": args.seed,
+        }
+    )
+
     # -----------------------------
     # DISTRIBUTED + CUDA SETUP
     # -----------------------------
@@ -993,6 +1025,13 @@ def main() -> None:
                 f"step:{step}/{args.iterations} val_loss:{val_loss:.4f} val_bpb:{val_bpb:.4f} "
                 f"train_time:{training_time_ms:.0f}ms step_avg:{training_time_ms / max(step, 1):.2f}ms"
             )
+            if master_process:
+                wandb.log({
+                "val/loss": val_loss,
+                "val/bpb": val_bpb,
+                "train_time_ms": training_time_ms,
+                }, step=step)
+
             torch.cuda.synchronize()
             t0 = time.perf_counter()
 
@@ -1044,6 +1083,13 @@ def main() -> None:
                 f"step:{step}/{args.iterations} train_loss:{train_loss.item():.4f} "
                 f"train_time:{approx_training_time_ms:.0f}ms step_avg:{approx_training_time_ms / step:.2f}ms"
             )
+            if master_process and step % args.val_loss_every == 0:
+                wandb.log({
+                "train/loss": train_loss.item(),
+                "lr/matrix": optimizer_muon.param_groups[0]["lr"],
+                "lr/scalar": optimizer_scalar.param_groups[0]["lr"],
+                "lr/embed": optimizer_tok.param_groups[0]["lr"],
+                }, step=step)
 
         # Needed to sync whether we've reached the wallclock cap.
         reached_cap = max_wallclock_ms is not None and approx_training_time_ms >= max_wallclock_ms
