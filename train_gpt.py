@@ -72,7 +72,6 @@ class Hyperparameters:
 
     #MLA parameters
     latent_dim = int(os.environ.get("LATENT_DIM", 64))
-    rotary_dim = int(os.environ.get("ROTARY_DIM", 32))
 
     # Optimizer hyperparameters.
     embed_lr = float(os.environ.get("EMBED_LR", 0.6))
@@ -570,6 +569,8 @@ class CausalSelfAttention(nn.Module):
             raise ValueError("model_dim must be divisible by num_heads")
         if num_heads % num_kv_heads != 0:
             raise ValueError("num_heads must be divisible by num_kv_heads")
+        if latent_dim % 4 != 0:
+            raise ValueError("latent_dim must be divisible by 4")
         self.num_heads = num_heads
         self.num_kv_heads = num_kv_heads
         self.head_dim = dim // num_heads
