@@ -57,7 +57,7 @@ class Hyperparameters:
     train_batch_tokens = int(os.environ.get("TRAIN_BATCH_TOKENS", 524_288))
     train_seq_len = int(os.environ.get("TRAIN_SEQ_LEN", 1024))
     max_wallclock_seconds = float(os.environ.get("MAX_WALLCLOCK_SECONDS", 600.0))
-    latent_dim = float(os.environ.get("latent_dim", 1.5))
+    #latent_dim = float(os.environ.get("latent_dim", 1.5))
 
     # Model shape.
     vocab_size = int(os.environ.get("VOCAB_SIZE", 1024))
@@ -582,12 +582,12 @@ class CausalSelfAttention(nn.Module):
 
         self.c_q = CastedLinear(dim, self.Q_latent_dim, bias=False)
         self.c_k = CastedLinear(dim, self.K_latent_dim, bias=False)
-        self.r_q = CastedLinear(self.Q_latent_dim, self.rotary_dim * 8, bias=False)
+        self.r_q = CastedLinear(self.Q_latent_dim, self.rotary_dim * self.num_heads, bias=False)
         self.r_k = CastedLinear(dim, self.rotary_dim, bias=False)
 
-        self.u_q = CastedLinear(self.Q_latent_dim, self.head_dim * 8, bias=False)
-        self.u_k = CastedLinear(self.K_latent_dim, self.head_dim * 8, bias=False)
-        self.u_v = CastedLinear(self.K_latent_dim, self.head_dim * 8, bias=False)
+        self.u_q = CastedLinear(self.Q_latent_dim, self.head_dim * self.num_heads, bias=False)
+        self.u_k = CastedLinear(self.K_latent_dim, self.head_dim * self.num_heads, bias=False)
+        self.u_v = CastedLinear(self.K_latent_dim, self.head_dim * self.num_heads, bias=False)
 
 
         self.proj = CastedLinear(dim, dim, bias=False)
@@ -600,14 +600,14 @@ class CausalSelfAttention(nn.Module):
         q_compress = self.c_q(x)
         kv_compress = self.c_k(x)
         q_rotary = self.r_q(q_compress).reshape(bsz, seqlen, self.num_heads, self.rotary_dim).transpose(1, 2)
-        k_rotary = torch.cat([self.r_k(x)] * 8, dim=-1).reshape(bsz, seqlen, self.num_heads, self.rotary_dim).transpose(1, 2)
+        k_rotary = torch.cat([self.r_k(x)] * self.num_heads, dim=-1).reshape(bsz, seqlen, self.num_heads, self.rotary_dim).transpose(1, 2)
 
         q_up = self.u_q(q_compress).reshape(bsz, seqlen, self.num_heads, self.head_dim).transpose(1, 2)
         k_up = self.u_k(kv_compress).reshape(bsz, seqlen, self.num_heads, self.head_dim).transpose(1, 2)
         v_up = self.u_v(kv_compress).reshape(bsz, seqlen, self.num_heads, self.head_dim).transpose(1, 2)
         q_rotary = F.rms_norm(q_rotary, (q_rotary.size(-1),))
         k_rotary = F.rms_norm(k_rotary, (k_rotary.size(-1),))
-        cos, sin = self.rotary(seqlen, x.device, q.dtype)
+        cos, sin = self.rotary(seqlen, x.device, q_rotary.dtype)
         q_r = apply_rotary_emb(q_rotary, cos, sin)
         k_r = apply_rotary_emb(k_rotary, cos, sin)
 
@@ -621,7 +621,7 @@ class CausalSelfAttention(nn.Module):
             v_up,
             attn_mask=None,
             is_causal=True,
-            enable_gqa=(self.num_kv_heads != self.num_heads),
+            #enable_gqa=(self.num_kv_heads != self.num_heads),
         )
         y = y.transpose(1, 2).contiguous().reshape(bsz, seqlen, dim)
         return self.proj(y)
