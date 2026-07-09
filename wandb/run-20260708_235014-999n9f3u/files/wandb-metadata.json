@@ -1,0 +1,40 @@
+{
+  "os": "Linux-6.8.0-90-generic-x86_64-with-glibc2.35",
+  "python": "CPython 3.11.10",
+  "startedAt": "2026-07-08T23:50:14.485006Z",
+  "program": "/root/parameter-golf/train_gpt.py",
+  "codePath": "train_gpt.py",
+  "codePathLocal": "train_gpt.py",
+  "git": {
+    "remote": "https://github.com/Gouti629/parameter-golf.git",
+    "commit": "2c6862b5db1e8dc7f5b21f6518ed5a878ded6bc4"
+  },
+  "email": "gouti3190@gmail.com",
+  "root": "/root/parameter-golf",
+  "host": "5f102ffa0039",
+  "executable": "/usr/bin/python",
+  "cpu_count": 104,
+  "cpu_count_logical": 208,
+  "gpu": "NVIDIA H100 80GB HBM3",
+  "gpu_count": 1,
+  "disk": {
+    "/": {
+      "total": "59055800320",
+      "used": "13250748416"
+    }
+  },
+  "memory": {
+    "total": "2164113231872"
+  },
+  "gpu_nvidia": [
+    {
+      "name": "NVIDIA H100 80GB HBM3",
+      "memoryTotal": "85520809984",
+      "cudaCores": 16896,
+      "architecture": "Hopper",
+      "uuid": "GPU-ad16307b-69a7-5542-07ea-b8b98acc7e95"
+    }
+  ],
+  "cudaVersion": "13.0",
+  "writerId": "gki8etezt7v8h0q68kd36xe25omukn5j"
+}

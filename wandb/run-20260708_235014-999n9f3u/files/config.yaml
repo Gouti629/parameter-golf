@@ -1,0 +1,87 @@
+_wandb:
+    value:
+        cli_version: 0.28.0
+        e:
+            gki8etezt7v8h0q68kd36xe25omukn5j:
+                codePath: train_gpt.py
+                codePathLocal: train_gpt.py
+                cpu_count: 104
+                cpu_count_logical: 208
+                cudaVersion: "13.0"
+                disk:
+                    /:
+                        total: "59055800320"
+                        used: "13250748416"
+                email: gouti3190@gmail.com
+                executable: /usr/bin/python
+                git:
+                    commit: 2c6862b5db1e8dc7f5b21f6518ed5a878ded6bc4
+                    remote: https://github.com/Gouti629/parameter-golf.git
+                gpu: NVIDIA H100 80GB HBM3
+                gpu_count: 1
+                gpu_nvidia:
+                    - architecture: Hopper
+                      cudaCores: 16896
+                      memoryTotal: "85520809984"
+                      name: NVIDIA H100 80GB HBM3
+                      uuid: GPU-ad16307b-69a7-5542-07ea-b8b98acc7e95
+                host: 5f102ffa0039
+                memory:
+                    total: "2164113231872"
+                os: Linux-6.8.0-90-generic-x86_64-with-glibc2.35
+                program: /root/parameter-golf/train_gpt.py
+                python: CPython 3.11.10
+                root: /root/parameter-golf
+                startedAt: "2026-07-08T23:50:14.485006Z"
+                writerId: gki8etezt7v8h0q68kd36xe25omukn5j
+        m: []
+        python_version: 3.11.10
+        t:
+            "1":
+                - 1
+            "2":
+                - 1
+            "3":
+                - 13
+                - 16
+                - 61
+            "4": 3.11.10
+            "5": 0.28.0
+            "12": 0.28.0
+            "13": linux-x86_64
+embed_lr:
+    value: 0.6
+head_lr:
+    value: 0.008
+iterations:
+    value: 2100
+matrix_lr:
+    value: 0.04
+mlp_mult:
+    value: 2
+model_dim:
+    value: 512
+muon_momentum:
+    value: 0.95
+num_heads:
+    value: 8
+num_kv_heads:
+    value: 4
+num_layers:
+    value: 9
+scalar_lr:
+    value: 0.04
+seed:
+    value: 1337
+tie_embeddings:
+    value: true
+tied_embed_lr:
+    value: 0.05
+train_batch_tokens:
+    value: 524288
+vocab_size:
+    value: 1024
+warmdown_iters:
+    value: 1200
+warmup_steps:
+    value: 20

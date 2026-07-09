@@ -1,3 +1,4 @@
+
 """
 The `train_gpt.py` and `train_gpt_mlx.py` scripts are intended as good launching-off points for new participants, not SOTA configs. We'll accept PRs that tune, improve, or simplify these scripts without significantly increasing complexity, but competitive submissions should stay in the `/records` folder.
 
@@ -11,6 +12,7 @@ import glob
 import io
 import math
 import os
+import wandb
 import random
 import subprocess
 import sys
@@ -87,7 +89,7 @@ class Hyperparameters:
     beta1 = float(os.environ.get("BETA1", 0.9))
     beta2 = float(os.environ.get("BETA2", 0.95))
     adam_eps = float(os.environ.get("ADAM_EPS", 1e-8))
-    grad_clip_norm = float(os.environ.get("GRAD_CLIP_NORM", 0.0))
+    grad_clip_norm = float(os.environ.get("GRAD_CLIP_NORM", 1.0))
 
 # -----------------------------
 # MUON OPTIMIZER 
@@ -612,18 +614,24 @@ class CausalSelfAttention(nn.Module):
         q_r = apply_rotary_emb(q_rotary, cos, sin)
         k_r = apply_rotary_emb(k_rotary, cos, sin)
 
+        q_up = F.rms_norm(q_up, (q_up.size(-1),))
+        k_up = F.rms_norm(k_up, (k_up.size(-1),))
+
         q = torch.cat([q_up, q_r], dim=-1)
         k = torch.cat([k_up, k_r], dim=-1)
+        v = F.pad(v_up, (0, q.size(-1) - v_up.size(-1)))
+
 
         #q = q * self.q_gain.to(dtype=q.dtype)[None, :, None, None]
         y = F.scaled_dot_product_attention(
             q,
             k,
-            v_up,
+            v,
             attn_mask=None,
             is_causal=True,
             #enable_gqa=(self.num_kv_heads != self.num_heads),
         )
+        y = y[:, :, :, :self.head_dim]
         y = y.transpose(1, 2).contiguous().reshape(bsz, seqlen, dim)
         return self.proj(y)
 
@@ -783,6 +791,36 @@ def main() -> None:
         dist.barrier()
     master_process = rank == 0
 
+    # Add Weights and Biases to track our experiments and log training/validation metrics.
+    if master_process:
+        wandb.init(
+        project="parameter-golf",
+        name=f"{'tied' if args.tie_embeddings else 'untied'}-seed{args.seed}-{args.run_id[:8]}",
+        config={
+            # Model architecture
+            "vocab_size": args.vocab_size,
+            "num_layers": args.num_layers,
+            "model_dim": args.model_dim,
+            "num_heads": args.num_heads,
+            "num_kv_heads": args.num_kv_heads,
+            "mlp_mult": args.mlp_mult,
+            "tie_embeddings": args.tie_embeddings,
+            # Training
+            "iterations": args.iterations,
+            "train_batch_tokens": args.train_batch_tokens,
+            "warmup_steps": args.warmup_steps,
+            "warmdown_iters": args.warmdown_iters,
+            # Optimizer
+            "matrix_lr": args.matrix_lr,
+            "scalar_lr": args.scalar_lr,
+            "tied_embed_lr": args.tied_embed_lr,
+            "embed_lr": args.embed_lr,
+            "head_lr": args.head_lr,
+            "muon_momentum": args.muon_momentum,
+            "seed": args.seed,
+        }
+    )
+
     # Fast math knobs
     torch.backends.cuda.matmul.allow_tf32 = True
     torch.backends.cudnn.allow_tf32 = True
@@ -888,7 +926,7 @@ def main() -> None:
         scalar_params.append(base_model.skip_weights)
     token_lr = args.tied_embed_lr if args.tie_embeddings else args.embed_lr
     optimizer_tok = torch.optim.Adam(
-        [{"params": [base_model.tok_emb.weight], "lr": token_lr, "base_lr": token_lr}],
+        [{"params": [base_model.tok_emb.weight, scalar_params], "lr": token_lr, "base_lr": token_lr}],
         betas=(args.beta1, args.beta2),
         eps=args.adam_eps,
         fused=True,
@@ -1018,6 +1056,13 @@ def main() -> None:
                 f"step:{step}/{args.iterations} val_loss:{val_loss:.4f} val_bpb:{val_bpb:.4f} "
                 f"train_time:{training_time_ms:.0f}ms step_avg:{training_time_ms / max(step, 1):.2f}ms"
             )
+            if master_process:
+                wandb.log({
+                "val/loss": val_loss,
+                "val/bpb": val_bpb,
+                "train_time_ms": training_time_ms,
+                }, step=step)
+
             torch.cuda.synchronize()
             t0 = time.perf_counter()
 
@@ -1069,6 +1114,13 @@ def main() -> None:
                 f"step:{step}/{args.iterations} train_loss:{train_loss.item():.4f} "
                 f"train_time:{approx_training_time_ms:.0f}ms step_avg:{approx_training_time_ms / step:.2f}ms"
             )
+            if master_process and step % args.val_loss_every == 0:
+                wandb.log({
+                "train/loss": train_loss.item(),
+                "lr/matrix": optimizer_muon.param_groups[0]["lr"],
+                "lr/scalar": optimizer_scalar.param_groups[0]["lr"],
+                "lr/embed": optimizer_tok.param_groups[0]["lr"],
+                }, step=step)
 
         # Needed to sync whether we've reached the wallclock cap.
         reached_cap = max_wallclock_ms is not None and approx_training_time_ms >= max_wallclock_ms
