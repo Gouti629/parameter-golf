@@ -2,7 +2,10 @@
 
 ## Motivation
 
-The baseline uses GQA for attention. The major idea behind GQA is to have shared key and value matrices for a group of heads to reduce the KV cache during inference. GQA gives smaller KV caches than Multi-Head Attention and better results than Multi-Query Attention, where all heads share a single key and value matrix.
+The baseline uses GQA for attention. The major idea behind GQA is to have shared key and value matrices for a group of heads to reduce the KV cache during inference. GQA gives smaller KV caches than Multi-Head Attention and better results than Multi-Query Attention, where all heads share a single key and value matrix. The image below gives an visual understanding. The image credits to Sebastian Raschka whose blog is also really great, I recommend people to follow him.
+
+![MHA vs GQA](image-1.png)
+
 GQA although gives weaker performance when compared to Multi-head Attention since the key and value matrices are shared that reduces its capabilities.
 
 
@@ -35,6 +38,8 @@ This branch swaps GQA for MLA to understand, hands-on, how joint low-rank K/V co
 - Q and K are formed as `cat([content, rotary])`, so scores split additively as `q·k = (q_up · k_up) + (q_r · k_r)`
 - V is padded from `head_dim` (64) up to `head_dim + rotary_dim` (96) so that the FlashAttention kernel sees matching head dims. The padded columns are zeros and contribute nothing and the output is sliced back to 64.
 - Run 3 additionally introduced gradient clipping and RMS norm on the  q/k since the loss shot up.
+
+![MLA](image-2.png)
 
 This is the **training-time** path — full expand-and-concat attention. The KV-cache fusion trick is not implemented, as it's an inference-time optimization out of scope for this training harness.
 
