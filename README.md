@@ -1,275 +1,142 @@
-<img width="3840" height="1280" alt="1920x640-discord" src="https://github.com/user-attachments/assets/90607b26-171f-476a-90ae-69b9dbb7cb30" />
-
-<br>
-<br>
-
-**OpenAI Model Craft Challenge: Parameter Golf** is a challenge to train the best language model that fits in a 16MB artifact and trains in under 10 minutes on 8xH100s, evaluated by compression on the FineWeb validation set (tokenizer-agnostic, bits per byte).
-
-This challenge is heavily inspired by the [NanoGPT Speedrunning](https://github.com/KellerJordan/modded-nanogpt) challenge, where participants compete to train a model that reaches 3.28 FineWeb validation loss as quickly as possible. We're excited to see how optimizing for a parameter-constrained setting pushes people toward unique architectures (test-time compute, aggressive parameter tying, depth recurrence, low-rank training, ...), compression schemes (low precision, QAT, bitnets, novel tokenizers, ...), and other creative submissions (test-time training, long context, megakernels ...). 
-
-If you're familiar with [neural scaling laws](https://arxiv.org/abs/2001.08361), you can consider this challenge a form of L(N) optimization, where the objective is to optimize the lowest loss given a fixed number of parameters (N) unconstrained by data, compute, steps, or architecture. Challenges like the [NanoGPT Speedrun](https://github.com/KellerJordan/modded-nanogpt), which optimizes for a form of L(T) (~lowest time given constrained loss) or the [NanoGPT Slowrun](https://github.com/qlabs-eng/slowrun), which optimizes for L(D) (lowest loss given constrained dataset size), can be thought of as equivalent challenges in this family.
-
-Ideally, we'd allow for submissions to use arbitrary computational resources. But in order to make the challenge not inaccessibly expensive, we're limiting *leaderboard submissions* to 10 minutes on 8xH100s. However, we'd still love to see submissions that don't meet the compute limitation requirements in our 'Non-record Submissions' section: We're excited to see people push the infinite frontier of parameter limited performance as well.
-
-We also know compute is expensive, so **OpenAI is sponsoring $1,000,000 in compute credits** to help people get started training their models. To request a compute grant, use this form: [Request a Compute Grant](https://openai.com/index/parameter-golf/#credit-form).
-When requesting compute, please make sure you choose the appropriate level, write sufficient justification, and **submit with an email tied to a OpenAI / ChatGPT account**.
-
-## Participant Form
-
-If you enjoy solving very difficult technical problems, please introduce yourself via the [Challenge Participant Form](https://jobs.ashbyhq.com/openai/form/open-ai-challenge-parameter-golf). It helps us attribute challenge submissions and reach out about opportunities with OpenAI. _Completing the form is not required to participate._
-
-Many researchers at OpenAI first distinguished themselves through elite mathematics and programming competitions. The Model Craft Challenge is designed in that spirit: testing the ability to tackle unfamiliar problems with creativity and rigor, qualities we believe are essential for frontier AI research.
-
-In June, we plan to hire a small cohort of early-career researchers, targeting current undergraduate students and recent graduates, including Olympiad medalists and elite competitors. For exceptional participants, the challenge may also serve as a way to stand out to OpenAI researchers and recruiters.
-
-The challenge runs from March 18th to April 30th. 
-
-Happy training!
-
-## Leaderboard
-
-| Run | Score | Author | Summary | Date | Info |
-|-----|------:|--------|---------|------|------|
-| Calib32 Token-Only N-gram + AsymLogit Stack | 1.0565 | codemath3000 | On PR #2135: pre-cutoff PR #2130 architecture rerun on clean canonical CaseOps data with GPTQ_CALIBRATION_BATCHES=32; 3-seed mean 1.05651 under grace policy (p=0.014 vs PR #2014) | 2026-05-01 | [info](https://github.com/openai/parameter-golf/pull/2135) |
-| Progressive Context Growth + Short-Doc Score-First TTT | 1.0576 | simonbissonnette | On PR #2014: PR #1855/#1953 CaseOps stack with progressive context growth to 3k plus short-doc score-first TTT on the AWQ-lite/AsymLogit lineage; 3-seed mean 1.05759 (p=0.011 vs PR #1953) | 2026-04-30 | [info](https://github.com/openai/parameter-golf/pull/2014) |
-| Long-Context No-Q/V TTT + QK-Gain 5.25 | 1.0586 | andrewbaggio1 | On PR #1953: PR #1945 V21 base with 2560 eval/TTT context, no-Q/V TTT mask, TTT LR 0.75, and QK_GAIN_INIT=5.25; 3-seed mean 1.05855 (p=0.063 vs PR #1945 V21 v2) | 2026-04-30 | [info](https://github.com/openai/parameter-golf/pull/1953) |
-| AWQ-Lite GPTQ + AsymLogit on PR1855 Stack | 1.0594 | alertcat | On PR #1945 commit 70067534: PR #1855 stack plus PR #1908 AWQ-lite mixed GPTQ and PR #1923 AsymLogit; V21 v2 3-seed mean 1.05943 after strict seed-42 rerun (p=0.034 vs PR #1855) | 2026-04-29 | [info](https://github.com/openai/parameter-golf/pull/1945), [commit](https://github.com/openai/parameter-golf/pull/1945/commits/7006753424886886bc27a17f839f6afd01962a08) |
-| BOS-Fixed SmearGate + LQER + SparseAttnGate + 9-Hparam Stack | 1.0611 | codemath3000 | On PR #1855: BOS-fixed #1797-derived stack with LQER, PR #1787 SparseAttnGate/PolarNS/FusedCE base, per-group lrzip compression, and 9 greedy hyperparameter overrides; submitted 3-seed mean 1.06108 with broader reproduction support (p=0.188 vs PR #1868 latest rerun) | 2026-04-27 | [info](https://github.com/openai/parameter-golf/pull/1855), [repro](https://github.com/openai/parameter-golf/pull/1855#issuecomment-4336629746) |
-| BOS-Fixed SmearGate + LQER Asymmetric + PR1787 SparseAttn + Phased TTT | 1.0614 | aquariouseworkman | On PR #1851 with 3-seed compliance-rerun support from PR #1868: BOS-boundary fix from PR #1851 applied to dexhunter's PR #1797 SmearGate + LQER stack, using the PR #1787 SparseAttnGate/PolarNS/FusedCE base plus CaseOps and phased score-first TTT | 2026-04-27 | [info](https://github.com/openai/parameter-golf/pull/1851), [3-seed](https://github.com/openai/parameter-golf/pull/1868) |
-| PR1736 + PolarNS + MIN_LR + SparseAttnGate + FusedCE + Warm-A TTT | 1.0634 | nprime06 | On PR #1787: PR #1736 CaseOps stack plus Polar Express Newton-Schulz coefficients, MIN_LR=0.1, SparseAttnGate, fused softcapped CE, and PR #1767-style warm-start-A TTT | 2026-04-23 | [info](https://github.com/openai/parameter-golf/pull/1787) |
-| CaseOps + MLPClip12 + SmearGate/LoRA-TTT | 1.0645 | dexhunter | On PR #1769: CaseOps stack with SmearGate/LoRA-TTT refinements and MLPClip12; 5-seed mean improves the accepted CaseOps frontier (p=0.063 vs #1736) | 2026-04-22 | [info](https://github.com/openai/parameter-golf/pull/1769) |
-| SP8192 + CaseOps + GatedAttn + QuantGate + Loop45 + Phased TTT | 1.0655 | dexhunter | On PR #1736: adopts romeerp's lossless CaseOps transform from PR #1729 with byte-sidecar BPB accounting, then adds gated attention and quant-gate scaling on the PR #1530 SP8192 phased-TTT stack | 2026-04-19 | [info](https://github.com/openai/parameter-golf/pull/1736) |
-| CaseOps Tokenizer + Tapered WD + Phased TTT | 1.0678 | romeerp | On PR #1729: lossless CaseOps bijective case transform with validation byte sidecars, plus mild late Muon weight-decay taper on the PR #1626 legal phased-TTT stack | 2026-04-19 | [info](https://github.com/openai/parameter-golf/pull/1729) |
-| SmearGate + Attention Output Gate + Legal TTT | 1.0714 | MarioPaerle | On PR #1667: SmearGate, attention output gate, depth recurrence, parallel residuals, QK-Gain 5.25, quantization, and score-first TTT | 2026-04-16 | [info](https://github.com/openai/parameter-golf/pull/1667) |
-| VarLen Attention + Fused MLP + Multi-Phase Global SGD TTT | 1.0719 | dexhunter | On PR #1626: VarLen attention, fused MLP, multi-phase global SGD TTT, trimmed GPTQ, MLR 0.026, int7 embeddings, and adaptive clip | 2026-04-14 | [info](https://github.com/openai/parameter-golf/pull/1626) |
-| VarLenAttn + PhasingTTT | 1.0728 | romeerp | On PR #1610: #1530-style VarLen/fused stack plus phased TTT over already-scored validation chunks | 2026-04-13 | [info](https://github.com/openai/parameter-golf/pull/1610) |
-| VarLen Attention + Fused MLP + Doc-Independent Legal TTT | 1.0734 | samacqua | On PR #1530: variable-length FA3 attention, fused Triton MLP, grouped small-parameter all-reduces, and doc-independent score-first LoRA TTT | 2026-04-11 | [info](https://github.com/openai/parameter-golf/pull/1530) |
-| Improved Parallel Residuals + CUTLASS EVT + Legal TTT | 1.0758 | msisovic | On PR #1529: PR #1523 SP8192 baseline with fuller two-lane parallel residual routing, PARALLEL_RESIDUAL_START=8, inline CUTLASS EVT/Triton fused kernels, and legal score-first TTT; corrected 3-seed mean after GPTQ reserve/seed fix (p=0.001 vs #1514) | 2026-04-11 | [info](https://github.com/openai/parameter-golf/pull/1529) |
-| SP8192 + Muon 0.97 + Legal Score-First TTT | 1.0798 | dexhunter | On PR #1514: SP8192 with Muon 0.97 and legal score-first TTT; 3-seed sweep beats #1493 (p=0.020) | 2026-04-09 | [info](https://github.com/openai/parameter-golf/pull/1514) |
-| SP8192 + 3-Layer Recurrence + Parallel Residuals + Legal TTT | 1.0810 | bigbag | On PR #1493: 3-layer recurrence, parallel residuals, QK-Gain 5.25, and legal score-first TTT on the PR #1394 stack | 2026-04-09 | [info](records/track_10min_16mb/2026-04-09_SP8192_3LayerRecur_ParResid_QK525_LegalTTT/README.md) |
-| SP8192 + Parallel Residuals + Score-First TTT | 1.0822 | aryanbhosale | On PR #1477: parallel residuals on the PR #1413 SP8192 + legal score-first TTT stack | 2026-04-08 | [info](records/track_10min_16mb/2026-04-08_SP8192_ParallelResid_ScoreFirstTTT/README.md) |
-| SP8192 + QK-Gain 5 + Legal Score-First TTT | 1.0828 | dexhunter | On PR #1413: QK-Gain 5.0 + legal score-first TTT on the PR #1394 SP8192 stack | 2026-04-06 | [info](records/track_10min_16mb/2026-04-06_SP8192_QK5_LegalTTT_1.0828/README.md) |
-| SP8192 + Parallel Residuals + Hessian-Aware SDClip | 1.0835 | Robby Sneiderman | On PR #1412: parallel residuals, Hessian-aware SDClip, and progressive recurrence on the PR #1394 stack | 2026-04-06 | [info](records/track_10min_16mb/2026-04-06_SP8192_HessianSDClip_ProgressiveRecurrence/README.md) |
-| SP8192 + GPTQ Embeddings + Depth Recurrence + SDClip | 1.0856 | Kevin Clark | On PR #1394: SP8192, GPTQ embeddings, looped layers 4-5, MuonEq-R, and std-based GPTQ clipping | 2026-04-05 | [info](records/track_10min_16mb/2026-04-05_SP8192_GPTQ-Embeddings_SDClip_Loop45x2/README.md) |
-| SP4096 + Depth Recurrence + Parallel Residuals + MuonEq-R | 1.0897 | aryanbhosale | On PR #1334: SP4096 + depth recurrence + parallel residuals + MuonEq-R + QK-Gain 5.0 | 2026-04-04 | [info](records/track_10min_16mb/2026-04-04_SP4096_DepthRecurrence_ParallelResid_MuonEqR/README.md) |
-| MuonEq-R + Depth Recurrence + WD=0.090 + All-Int6 GPTQ | 1.0912 | dexhunter | On PR #1285: MuonEq-R + layers 4-5 recurrence + higher weight decay + all-int6 GPTQ | 2026-04-03 | [info](records/track_10min_16mb/2026-04-03_MuonEqR_DepthRecurrence_WD090_AllInt6/README.md) |
-| 4096-Vocab + Larger Model + High WD + Simplifications | 1.0979 | Kevin Clark | On PR #1218: SP4096 + 4x MLP + high weight decay, with TTT, hash embeddings, SmearGate, and value residuals removed | 2026-04-01 | [info](records/track_10min_16mb/2026-04-01_Vocab4096_MLPMult4_WD085/README.md) |
-| Parallel Residuals + Mini Depth Recurrence | 1.1063 | Marko Sisovic | On PR #1204: mini recurrence on layers 4-5 + parallel attention/MLP residual lanes + AR self-generated GPTQ calibration | 2026-03-31 | [info](records/track_10min_16mb/2026-03-31_ParallelResiduals_MiniDepthRecurrence/README.md) |
-| Rascal | 1.1099 | newjordan | On PR #1120: XSA-all + Parallel Muon + coprime loader + Bigram2048/RoPE16 + SWA/late QAT without GPTQ | 2026-03-30 | [info](https://github.com/openai/parameter-golf/pull/1120) |
-| Coprime-Stride Loader + Full GPTQ + XSA-all | 1.1122 | dexhunter | On PR #1060: coprime multi-shard loader + Full Hessian GPTQ + XSA on all layers + BigramHash(2816x112) | 2026-03-29 | [info](records/track_10min_16mb/2026-03-29_Loader_FullGPTQ_XSA11_BigramHash2816/README.md) |
-| 11L AR Self-Gen GPTQ + XSA | 1.1147 | abaybektursun | On PR #1019: Self-Generated GPTQ Calibration Data + all-layer XSA on the PR #549 stack | 2026-03-25 | [info](records/track_10min_16mb/2026-03-25_ValCalib_GPTQ_XSA_BigramHash3072/README.md) |
-| LeakyReLU² + Legal Score-First TTT + Parallel Muon | 1.1194 | abaybektursun | On PR #549: LeakyReLU(0.5)^2 + TTT + Parallel Muon on the PR #414 stack | 2026-03-23 | [info](records/track_10min_16mb/2026-03-23_LeakyReLU_LegalTTT_ParallelMuon/README.md) |
-| 11L EMA + GPTQ-lite + warmdown3500 | 1.1228 | signalrush | On PR #374: GPTQ-lite clip search + EMA, plus warmdown3500 and QAT@0.15 | 2026-03-22 | [info](records/track_10min_16mb/2026-03-22_11L_EMA_GPTQ-lite_warmdown3500_QAT015_1.1233/README.md) |
-| 11L Partial RoPE + LN Scale + EMA + XSA4 | 1.1248 | jfprincz | On PR #287: Partial RoPE (16/64) + layerwise LN scale | 2026-03-21 | [info](records/track_10min_16mb/2026-03-21_11L_XSA4_EMA_PartialRoPE_LateQAT_1.1248/README.md) |
-| 11L XSA4 + EMA + Int6 MLP3x | 1.1271 | jfprincz | On PR #198: XSA on the last 4 layers + EMA replacing SWA | 2026-03-20 | [info](records/track_10min_16mb/2026-03-20_11L_XSA4_EMA_Int6_MLP3x_WD04_1.1271/README.md) |
-| 11L Efficient Partial XSA | 1.1307 | unnir | On PR #198: Efficient Partial XSA on the deepest 3 layers | 2026-03-20 | [info](records/track_10min_16mb/2026-03-20_11L_EfficientPartialXSA_FA3_SWA120/README.md) |
-| 10L Int5-MLP + BigramHash(10240) | 1.1428 | thwu1 | 10 layers, mixed int5/int6 quantization, BigramHash(10240), SWA(0.4), WD=0.04 | 2026-03-20 | [info](records/track_10min_16mb/2026-03-20_10L_Int5MLP_MuonWD04_SWA50/README.md) |
-| Int6 MLP3x + SmearGate + BigramHash | 1.1458 | Raahil Shah | 3x MLP + SmearGate + BigramHash + OrthoInit + Muon WD + SWA | 2026-03-20 | [info](records/track_10min_16mb/2026-03-20_Int6_MLP3x_SmearGate_BigramHash_MuonWD_SWA/README.md) |
-| 11L MLP3x + Int6 QAT | 1.1502 | aruniyer | 11 layers, 3x MLP, int6 QAT, zstd-22, WD=0.04, sliding eval | 2026-03-20 | [info](records/track_10min_16mb/2026-03-19_MLP3x_QAT_Int6_SlidingWindow/README.md) |
-| SmearGate + OrthoInit + Muon WD | 1.1556 | aquariouseworkman | SmearGate + BigramHash + 3x MLP + int6 STE QAT + sliding eval | 2026-03-19 | [info](records/track_10min_16mb/2026-03-19_smeargate_orthoinit_muonwd/README.md) |
-| Ternary Quantization | 1.1570 | Ciprian-Florin Ifrim | 73.7M params quantized to 1 0 -1 + misc arch changes | 2026-03-24 | [info](records/track_10min_16mb/2026-03-24_74M_Ternary_UNet_FP8_10L_8192BPE_YaRN_NeoMuon/README.md) |
-| 10L Int6 QAT + Zstd MLP2.6x | 1.1586 | yahya010 | 10 layers, int6 QAT + zstd-22, MLP 1344, Muon 0.99, sliding eval | 2026-03-19 | [info](records/track_10min_16mb/2026-03-19_Seq2048_FP16Emb_TunedLR/README.md) |
-| Mixed Quant + Sliding Window Eval | 1.1630 | aquariouseworkman | Int6 block weights + int8 embeddings + 3x MLP + sliding eval | 2026-03-19 | [info](records/track_10min_16mb/2026-03-19_MixedQuant_Int6Int8_SlidingWindow/README.md) |
-| Muon WD + 10 layer | 1.1748 | notapplica | Includes prev. wins + Spectral embed init + resid mix | 2026-03-19 | [info](records/track_10min_16mb/2026-03-19_SlidingWindow_FP16Emb_10L_MuonWD_OvertoneInit/README.md) |
-| Sliding Window Eval | 1.1925 | Matthew Li | Sliding window evaluation at stride=64, increasing context for eval | 2026-03-19 | [info](records/track_10min_16mb/2026-03-19_SlidingWindowEval/README.md) |
-| Lora TTT | 1.1928 | samacqua | Test-time training with LORAs | 2026-03-19 | [info](records/track_10min_16mb/2026-03-17_LoRA_TTT/README.md) |
-| 4k seq length| 1.2014 | Spokane Way | 4k seq length + better hypers | 2026-03-19 | [info](records/track_10min_16mb/2026-03-19_TrainingOptSeq4096/README.md) |
-| 2048 seq length | 1.206 | Spokane Way | 2048 seq length (train + val) | 2026-03-18 | [info](records/track_10min_16mb/2026-03-18_LongContextSeq2048/README.md) |
-| int6 mixed precision | 1.2147 | Nan Liu | 10 layers, mixed int8/int6 | 2026-03-18 | [info](records/track_10min_16mb/2026-03-19_10L_MixedPrecision/README.md) |
-| fp16 Embed | 1.2197 | Renier Velazco | FP16 Tied Embedding + LR/Warmdown Tuning | 2026-03-18 | [info](records/track_10min_16mb/2026-03-18_FP16Embed_WD3600/README.md) |
-| Naive Baseline | 1.2244 | Baseline | 9layer 512dim 1024vocab TiedEmbeddings 4 KV heads | 2026-03-18 | [info](records/track_10min_16mb/2026-03-17_NaiveBaseline/README.md) |
-
-#### Unlimited Compute Leaderboard & Non-record Submissions
-
-| Run | Score | Author | Summary | Date | Info |
-|-----|------:|--------|---------|------|------|
-| 1 Bit Quantization | 1.1239 | CiprianFlorin-Ifrim | 106M params quantized to 1 bit + misc arch changes + 2hr training | 2026-03-24 | [info](records/track_non_record_16mb/2026-03-24_106M_Binary_Asymmetric_UNet_FP8_15L_8192BPE_YaRN_NeoMuon_Smear/README.md) |
-| MDLM Text Diffusion | 1.1465 | agalimova | On PR #1106: masked diffusion LM with absorbing-mask ELBO-style eval, validated on 2xH100 as a discrete diffusion language-model entry | 2026-03-29 | [info](records/track_non_record_16mb/2026-03-29_LLaDA_MDLM_Diffusion/README.md) |
-| Hymba-8L + Sliding Attention at 32K | 1.1467 | mkenney2 | On PR #1245: hybrid Mamba SSM + sliding-window attention with 32K context, 3-seed under-16MB result, and score-first TTT | 2026-04-01 | [info](https://github.com/openai/parameter-golf/pull/1245) |
-| Mamba-3 Hybrid SSM + SP8192 + Legal TTT | 1.1473 | mradassaad | On PR #1644: 7-layer Mamba-3 hybrid with 5 SSM blocks, 2 attention layers, SP8192, AR GPTQ, chunk score-first TTT, and stateful-overlap eval | 2026-04-15 | [info](records/track_non_record_16mb/2026-04-15_Mamba3Hybrid_SP8192_GPTQ_TTT/README.md) |
-| Differential-Gated Attention | 1.1898 | ddavidgao | On PR #542: alternative attention mechanism carrying novelty/differential payloads in deep layers, with analysis of depth-dependent redundancy | 2026-03-23 | [info](records/track_non_record_16mb/2026-03-23_DGAttention_DavidGao/README.md) |
-| Learned Adapters on Random Linear Maps | 1.1971 | pranavxiyer | On PR #2058: random-seeded adapter MLPs with rank-160 learned LoRA-style adapters, 12 layers, 3x MLP, mixed int6/int8 compression, and 3-seed 10-minute evidence | 2026-04-30 | [info](records/track_non_record_16mb/2026-04-30_Random_Linear_Adapter/README.md) |
-| JEPA + Mamba2 LeWorldModel | 1.2064 | CiprianFlorin-Ifrim | On PR #903: ambitious SSM + JEPA latent-prediction submission with long-compute evidence and 10-minute logs | 2026-03-26 | [info](records/track_non_record_16mb/2026-03-26_37M_LeWM_Jepa_Mamba2_10L_UNet_INT4FP8QAT_Brotli/README.md) |
-| 4-Hour Baseline | 1.2074 | Will DePue | Testing unlimited compute, 4 hours on 8xH100 | 2026-03-18 | [info](records/track_non_record_16mb/2026-03-18_Quasi10Bfrom50B_SP1024_9x512_KV4_4h_pgut3/README.md) |
-| Universal Transformer with Iteration Embeddings | 1.2249 | gowtham0992 | On PR #1110: 3 unique blocks looped 4 times with iteration embeddings, giving 12 effective layers in a 4.95MB artifact | 2026-03-30 | [info](https://github.com/openai/parameter-golf/pull/1110) |
-| LegendreGPT Depth Parameterization | 1.2266 | sergimichi | On PR #1337: generates transformer weights as smooth Legendre-polynomial functions of layer depth, producing 24 virtual layers in 15.7MB after post-hoc quantization | 2026-04-04 | [info](records/track_non_record_16mb/2026-03-31_LegendreGPT/README.md) |
-| ByteJEPA | 1.3496 | hardik-bhadani-git | On PR #1443: byte-level JEPA with latent prediction, SIGReg anti-collapse, no tokenizer, and an auxiliary CE head for BPB evaluation | 2026-04-07 | [info](https://github.com/openai/parameter-golf/pull/1443) |
-| Byte-Level H-Net Dynamic Chunking | 1.3595 | DariusFeher | On PR #1104: systematic H-Net byte-vs-subword study with learned whitespace/word-like boundaries, plus 10-minute and 4-hour evidence | 2026-03-30 | [info](records/track_non_record_16mb/2026-03-29_HNet_ByteVsSubword_Study/README.md) |
-| Orthogonal Random Maps + LoRA Adapters | 1.3705 | gowtham0992 | On PR #1113: random orthogonal attention/MLP weights regenerated from seeds with rank-32 LoRA adapters, 30M effective params, and a 5.19MB artifact | 2026-03-30 | [info](https://github.com/openai/parameter-golf/pull/1113) |
-| Olmo Hybrid GDN Long-Context Study | 1.4709 | aarjunsrinivasan | On PR #1371: GDN + attention long-context study with 8K/16K/32K crossover evidence showing SSM-style hybrids help at longer contexts | 2026-04-04 | [info](records/track_non_record_16mb/2026-04-04_GDN_Hybrid_LongContext/README.md) |
-| XNOR-Net Binary Activation Study | 1.5390 | CiprianFlorin-Ifrim | On PR #1388: broad 1-bit/XNOR research package with binary weights/activations, Triton XNOR-popcount kernels, 10-minute logs, and long-run evidence | 2026-04-05 | [info](records/track_non_record_16mb/2026-04-05_118M_XNOR-Net_FP8_1024D_10L/README.md) |
-
-#### Requests for PRs
+# `tied-embeddings` — Tied vs. Untied Embeddings
 
-Breakthrough ideas are rarely immediately state-of-the-art, instead, they're developed slowly, first demonstrating signs-of-life, iterated on, then only ultimately optimized on the systems side. Don't get discouraged if a new algorithm doesn't instantly beat the best leaderboard run or even the naive baseline. If you have an idea you believe in, consider ignoring step times early on: once you prove you can beat the baseline in the same # of steps you can then start focusing on how to also make it fast.
+![Embedding for decoder only architecture](<ChatGPT Image Jul 15, 2026, 02_15_16 PM.png>)
 
-We'd love to see weird & creative ideas in the challenge, since you never know what may work in the end. Most likely, these will be a good fit in our unlimited compute leaderboard as non-record submissions. We have some requests for what we'd love to see people implement:
+## Motivation
 
-- [x] 1-bit quantization - [implementation](records/track_non_record_16mb/2026-03-24_106M_Binary_Asymmetric_UNet_FP8_15L_8192BPE_YaRN_NeoMuon_Smear/README.md)
-- [x] Ternary quantization - [implementation](records/track_10min_16mb/2026-03-24_74M_Ternary_UNet_FP8_10L_8192BPE_YaRN_NeoMuon/README.md)
-- [ ] JEPA
-- [ ] Text diffusion
-- [ ] H-net tokenization
-- [ ] Universal transformer - [We have lots of depth recurrence submissions, but I'd love to see one 4 hour
-- [ ] Megakernels
-- [ ] State-space models, E2E TTT, super long context for evaluation or training 
-- [ ] Learning adapters on random linear maps
+In an LLM, each token starts as nothing but an index or an a discrete ID carrying no notion of similarity to any other token. The embedding matrix maps that index to a dense, continuous vector, and it's this vector that carries meaning.
 
-## Getting Started
+At the other end of every forward pass, the model has to turn its final hidden state back into a prediction. It does so by projecting that state onto the vocabulary to get one score per token, which softmax turns into a probability distribution.
 
-### Training Your First Model (Mac with Apple Silicon)
+Both matrices are `vocab_size × model_dim` not merely similar in shape, but identical and
+they're doing mirror-image jobs.
+Row `i` of the input embedding is "the vector that means token `i`." Row `i` of the output matrix is "the direction a hidden state must point for token `i` to score highly," which is, in effect, also a vector meaning token `i`. Two separately-learned matrices converging on the same kind of knowledge.
 
-If you have an Apple laptop or desktop with Apple Silicon, we've set up a simple MLX training script to help you start iterating locally.
+The idea of **tied embeddings** is to use one matrix for both jobs i.e, a lookup on the way in, a dot-product scorer on the way out. This reduces the parameter count and also acts as a regularizer, since a token's input and output representations can no longer drift apart.
 
-If you don't have a Mac with Apple Silicon, you can run an adapted version of this script without MLX support. Just ask [Codex](https://openai.com/codex/) to refactor it; the change is straightforward. It may still be fairly slow, so we recommend jumping straight to cloud GPUs with Runpod.
+### Why the practice is scale-dependent
 
-First, clone the repository, create a fresh Python environment, and install the packages needed for the MLX path plus dataset download:
+The empirical pattern is that models with tied embeddings tend to be the smaller ones — Qwen2.5 3B, OLMo 1B, Gemma 2 9B, with Gemma 2 27B as a notable counterexample that ties despite its size.
+Qwen2.5-Coder's report states the split outright: the 1.5B uses embedding tying, the 7B does not, despite an identical 151,646-token vocabulary.
 
-```bash
-git clone https://github.com/openai/parameter-golf.git
-cd parameter-golf
-python3 -m venv .venv
-source .venv/bin/activate
-python -m pip install --upgrade pip
-pip install mlx numpy sentencepiece huggingface-hub datasets tqdm
-```
+This makes sense on two counts. On **parameters**, embeddings grow as `V × d` while the transformer body grows as roughly `12 × L × d²`, so the embedding share collapses as models scale:
 
-Download our cached version of FineWeb with the 1024-token vocabulary:
+At 1B, tying is a ~20% parameter cut worth spending on more layers. At 70B it's ~1.5% — a rounding error, so you take the free expressiveness instead. (Gemma 2 27B shows share isn't the only input: its 256k vocab keeps the *absolute* saving large, and Google ties across the whole family.)
 
-```bash
-python3 data/cached_challenge_fineweb.py --variant sp1024 --train-shards 10
-```
+On **regularization**, scaling laws mean larger models are trained on correspondingly larger
+corpora — modern LLMs see well under one epoch of trillions of tokens, so overfitting is essentially absent and there's nothing for the constraint to regularize away. Whatever overfitting pressure exists lives in the small-model regime, which is the same place the parameter argument bites.
 
-This populates `./data/datasets/fineweb10B_sp1024/` and `./data/tokenizers/`.
-By default this downloads the full validation split plus 80 training shards (8B tokens). For a smaller local smoke subset, pass `--train-shards 1`, for example `python3 data/cached_challenge_fineweb.py --variant sp1024 --train-shards 1`.
+### Where this config actually sits
+Worth being explicit about, because it's counterintuitive: at `vocab_size=1024`, the embedding here is **3.1% of the model**  which is in the Llama-70B territory, not Llama-1B territory, despite this being a 17M-parameter model.
 
-Then run a small MLX training job:
+So this branch isn't really testing "tying in a small model." It's testing tying at an embedding share where the field has already concluded untying wins.
 
-```bash
-RUN_ID=mlx_smoke \
-ITERATIONS=200 \
-TRAIN_BATCH_TOKENS=8192 \
-VAL_LOSS_EVERY=0 \
-VAL_BATCH_SIZE=8192 \
-python3 train_gpt_mlx.py
-```
+## What changed?
 
-Validation always runs on the full `fineweb_val_*` split, which is the fixed first-50k-document set. The smoke command above skips periodic validation and just prints the final `val_loss` and `val_bpb` once at the end.
+Nothing structural — the baseline already provides a `TIE_EMBEDDINGS` argument (`1` for tied, `0` for untied, default `1`), so this branch runs both settings rather than implementing anything new.
+Attention stays GQA (`num_heads=8`, `num_kv_heads=4`) throughout, unchanged from the baseline and shared across both arms.
 
-### Scaling Up to a Remote Machine
+But the two arms differ in more than weight sharing, and this matters for interpreting the results.
 
-Once you're happy with your local tests, or you want more compute, switch to a remote CUDA machine.
+**Different learning rates.**
+| | Input embedding | Output head |
+|---|---|---|
+| Untied | `EMBED_LR = 0.6` | `HEAD_LR = 0.008` |
+| Tied | `TIED_EMBED_LR = 0.05` (both) | — |
+A 75× spread, for a reason visible in the code:
 
-You can rent GPUs from anywhere, but OpenAI is partnering with Runpod to make setup as easy as possible.  
 
-#### Launching a 1xH100 Pod
+(This different Learning Rates piqued my interest and hence I checked the reason with Claude Opus 4.8 High Effort model, The reason below is pasted as is to make sure I do not miss any important points)
+On the **input** side the embedding is RMS-normed the instant it's looked up, so only direction matters — magnitude is thrown away. Hence untied can afford `lr=0.6`. On the **output** side, `F.linear(x, W)` feeds straight into a `tanh` logit softcap, where magnitude is everything — too large and tanh saturates, killing the gradient. Hence `HEAD_LR = 0.008`.
 
-1. First, [create a Runpod account](https://console.runpod.io/deploy). You should also set up an SSH key in the Settings tab on the left so you can connect to your remote machine. If you're new to this, ask Codex to help you set it up.
+Tying forces one tensor to serve a scale-invariant consumer and a scale-critical one at once, so a single LR must satisfy both. `TIED_EMBED_LR = 0.05` is that compromise — closer to the head's 0.008 than the embedding's 0.6, because the output path is the binding constraint. 
 
-2. Once you've set up your account, create a new GPU Cloud Pod. You can choose whichever GPU SKU you'd like. Final leaderboard submissions must run in under 10 minutes on 8xH100s (specifically the SXM variant), but we strongly recommend testing and running experiments on cheaper SKUs first, since an 8xH100 box can cost around $20/hour.
 
-3. Let's start with a 1xH100 pod. Deploy using the official Parameter Golf template: [Launch Template](https://console.runpod.io/deploy?template=y5cejece4j&ref=nl2r56th). Enable SSH terminal access, leaving the other settings at their defaults. Deploy your pod and SSH into it once it's up. You should land in `/workspace/`.
+## Parameter count
 
-On your remote machine, clone the repo onto local disk. All Python dependencies are already pre-installed in the image.
+Config: `model_dim=512`, `num_heads=8`, `num_kv_heads=4`, `head_dim=64`, `mlp_mult=2`,
+`num_layers=9`, `vocab_size=1024`.
 
-```bash
-cd /workspace
-git clone https://github.com/openai/parameter-golf.git
-cd parameter-golf
-```
+### Per block (identical in both arms)
 
-Download our cached version of FineWeb. We'll use the 1024-token vocabulary for now.
+| Component | Shape | Params |
+|---|---|---|
+| `c_q` | 512 × 512 | 262,144 |
+| `c_k` | 512 × 256 | 131,072 |
+| `c_v` | 512 × 256 | 131,072 |
+| `proj` | 512 × 512 | 262,144 |
+| `q_gain` | 8 | 8 |
+| **Attention** | | **786,440** |
+| MLP (`fc` + `proj`) | 512×1024 + 1024×512 | 1,048,576 |
+| Block scalars (`attn_scale`, `mlp_scale`, `resid_mix`) | | 2,048 |
+| **Block total** | | **1,837,064** |
 
-```bash
-python3 data/cached_challenge_fineweb.py --variant sp1024
-```
+9 blocks = 16,533,576 · `skip_weights` (4 × 512) = 2,048
 
-This defaults to the full validation split plus 80 training shards (8B tokens). If you only want a smaller subset while iterating, pass `--train-shards N`, for example `--train-shards 1`.
+### The two arms
 
-Launch your first training run. Note that we're passing `nproc_per_node=1` because we're running on a single H100 GPU in this case.
+| | `tok_emb` | `lm_head` | Blocks + skips | **Total** |
+|---|---|---|---|---|
+| **Tied** | 524,288 | — (shared) | 16,535,624 | **17,059,912** |
+| **Untied** | 524,288 | 524,288 | 16,535,624 | **17,584,200** |
 
-```bash
-RUN_ID=baseline_sp1024 \
-DATA_PATH=./data/datasets/fineweb10B_sp1024/ \
-TOKENIZER_PATH=./data/tokenizers/fineweb_1024_bpe.model \
-VOCAB_SIZE=1024 \
-torchrun --standalone --nproc_per_node=1 train_gpt.py
-```
+Untying costs **524,288 parameters, a 3.07% increase**\
 
-By default, `train_gpt.py` keeps its ~10 minute wallclock cap. If you want a longer run, override it explicitly, for example `MAX_WALLCLOCK_SECONDS=0`.
+## Setup
 
-By default, this command prints `train_loss` step logs during training and prints `val_loss`, `val_bpb`, and compressed model size in the final `final_int8_zlib_roundtrip` lines at the end. If you want periodic validation logs during the run, set `VAL_LOSS_EVERY`, for example `VAL_LOSS_EVERY=200`. For the baseline config, the final `val_bpb` should land around ~1.2 with a compressed model size under 16MB.
+Single H100 (Runpod), `sp1024` FineWeb data/tokenizer. The challenge specifies 8×H100; we used one due to budget constraints, so absolute bpb is not comparable to the leaderboard. The comparison between arms remains valid, as both run under identical conditions.
 
-For dataset export, tokenizer export, and docs-cache rebuild instructions, see [data/README.md](data/README.md).
+The challenge caps training at 10 minutes of wallclock. Since untied adds a matmul for `lm_head` plus an extra optimizer group, we expected it to complete fewer iterations in the same budget. So, we also ran both arms for a fixed 5000 iterations to separate "better per step" from "more steps."
 
-Evaluation will be in the RunPod environment with all packages installed. `requirements.txt` is provided as a reference if you want to self-setup.
+Three seeds per arm at the 10-minute cap, one seed per arm at 5000 iterations.
 
-## FAQ
+## Results
 
-**What exactly counts toward the 16MB artifact size?**
+| Config | Embeddings | Seed | Val bpb | Model params | Iterations | Wallclock (min) |
+|---|---|---|---|---|---|---|
+| `tied_s1` | Tied | 123 | 1.345 | 17,059,912 | 1,153 | 10 |
+| `tied_s2` | Tied | 12 | 1.342 | 17,059,912 | 1,170 | 10 |
+| `tied_s3` | Tied | 712 | 1.343 | 17,059,912 | 1,173 | 10 |
+| `tied_s4` | Tied | 123 | 1.277 | 17,059,912 | 5,000 | 44 |
+| `untied_s1` | Untied | 123 | 1.324 | 17,584,200 | 1,163 | 10 |
+| `untied_s2` | Untied | 12 | 1.325 | 17,584,200 | 1,170 | 10 |
+| `untied_s3` | Untied | 712 | 1.323 | 17,584,200 | 1,170 | 10 |
+| `untied_s4` | Untied | 123 | 1.269 | 17,584,200 | 5,000 | 46 |
 
-The submission artifact is computed as code bytes plus compressed model bytes. All counted code should live in the `train_gpt.py` script.
-The cap is decimal 16MB, i.e. 16,000,000 total bytes, not 16 MiB / 16,777,216 bytes.
-No external downloads, training dataset access, or network calls are allowed during evaluation. The artifact must be fully self-contained and reproducible.
+### Summary (10-minute runs, 3 seeds each)
 
-**Are scores independently verified by OpenAI?**
+| Embeddings | Mean bpb | Std | Min | Max |
+|---|---|---|---|---|
+| Tied | 1.3433 | 0.0015 | 1.342 | 1.345 |
+| Untied | **1.3240** | 0.0010 | 1.323 | 1.325 |
 
-We're not automatically verifying every submission, but we will verify the top leaderboard entries over time. Any non-reproducible results can be disqualified, and issues reproducing submissions should be raised on the PR. If you find an issue with a record on the leaderboard or find a record isn't reproducible, please let us know and add an Github Issue describing your findings.
+**Untied wins cleanly, with no overlap between the arms.** The worst untied run (1.325) beats the best tied run (1.342). A 1.5% mean gap against a ~0.1% noise floor is about as separated as a three-seed result gets.
 
-**What counts as 'external compute'? For example, is it fair to tune my hyperparameters offline?**
+### The gap shrinks with training
 
-There's no perfectly clear answer here and it's hard to draw a clean line around what does or does not count as external compute. For now, we're reserving the right to disqualify runs that are not in the spirit of the challenge. Tuning your Adam hyperparameters across a bunch of runs is fine, but if there's evidence that you're sneaking in additional compute unfairly, such as brute-forcing ridiculous seeds, we won't allow it. Use your best judgment and there's no penalty for asking questions.
+| Iterations | Tied | Untied | Gap |
+|---|---|---|---|
+| ~1,170 | 1.3433 | 1.3240 | **1.44%** |
+| 5,000 | 1.277 | 1.269 | **0.63%** |
 
-**What are the restrictions on evaluation?**
+Untied's advantage more than halves by 5000 iterations. This is a single seed per arm, so treat it as suggestive rather than established.
+This result hints that part of untied's early lead is optimization speed rather than permanent capacity. Untied starts at exactly uniform logits (zero-init head) and lets the input embedding move 12× faster (`EMBED_LR=0.6` vs `TIED_EMBED_LR=0.05`), both of
+which should matter most early.
 
-We won't accept submissions that take more than 10 minutes on 8xH100 to evaluate (Note: This limit is in addition to the 10 minutes of training time allowed!), but otherwise you're free to evaluate however. As with modded-nanogpt, we allow evaluation at any sequence length. And, obviously, you aren't allowed to access any training data during evaluation, unless you pay for those bits in the <16MB limit. We encourage competitors to push the bounds of evaluation methods as aggressively as with training methods. You CANNOT access validation data during training, e.g. by compressing it into your 16mb with "paid prefix".
+### Step time
 
-If it isn't abundantly obvious: You can't cheat on your test loss. You can't cheat by training on the validation set before you evaluate on the validation set. The validation language around test-time training has been confusing people: you are only allowed to test-time train on validation set tokens _you've already evaluated your model on_, since those tokens have already been graded!
+The 10-minute runs show no meaningful difference with both tied and untied completing ~1,165 iterations each (≈0.515 s/iter), so the expected untied slowdown didn't materialize at that scale. 
+The 5000-iteration runs disagree with tied and untied being 44 min vs 46 min respectively, making untied ~4.5% slower. The two setups contradict each other and neither is profiled, so the honest answer is that any step-time difference is small and we haven't measured it well enough to characterize.
 
-**What is the process for accepting new submissions?**
+## Takeaways
 
-Since all submissions are public, we're accepting record submissions chronologically depending on their PR creation time. The leaderboard may take time to update due to verification and review of submissions, so pay consideration to what the current SOTA PR is when submitting. As explained below, submissions should exceed the SOTA record with sufficient statistical significance in order to be accepted for the leaderboard. Otherwise, submissions may be accepted as 'non-record submissions' given they are sufficiently unique or interesting.
+- **Untied outperforms tied in this configuration** — 1.324 vs 1.343 bpb at the 10-minute cap, with complete separation across three seeds. Not a large margin, but an unambiguous one.
+- **The advantage narrows with training** (1.44% → 0.63% by 5000 iterations), suggesting some of it is early-training optimization speed rather than expressiveness. Single seed; needs replication.
+- **At 3.1% embedding share, this config sits in the regime where the field already unties** The result reproduces Qwen and Llama's choices at comparable shares rather than contradicting them. The 16 MB cap forced a small vocab, and a small vocab is what put a 17M-parameter model in the large-model regime.
 
-**Can I import XYZ package or library?**
+## Open questions / next steps
 
-Yes, you're free to import any package or library you want, so long as it does not unjustly violate the rules on evaluation, compute, training time, code size or otherwise. Just include a requirements.txt in your records folder and mention setup instructions in your README.md. Since you don't pay for bits imported in Python libraries, limitations clearly apply: You can't sneak in extra compute, capabilities, or massively increase effective code size with custom libraries, but importing FlashAttention, etc. is completely fine.
-
-
-## Submission Process
-
-New SOTA records must fulfill the following criteria:
-
-1. They must beat the existing SOTA by at least 0.005 nats. As in modded-nanogpt, because of inter-run variance all submissions must provide enough run logs to show at `p < 0.01` that they achieved the required 0.005-nat improvement. For submissions that improve speed through systems optimization without changing the ML, this requirement is waived.
-
-2. If changes are made to the tokenizer or dataset, prove with certainty that the val_bpb is correctly calculated. Submissions that edit the tokenizer will be examined much more carefully, since bugs may unjustly improve your score.
-
-3. Reproducibly run in under 10 minutes on 8xH100s.
-
-All submissions should be made as a pull request that only adds a new folder to the appropriate `/records` subfolder and includes the following files. Submissions without the full set of requirements will not be accepted.
-
-1. A README.md file that explains the submission in reasonable detail.
-
-2. A `submission.json` file (see the example runs) that includes your name, GitHub ID, `val_bpb`, and related metadata.
-
-3. A train log, automatically produced by your script. Please demonstrate a statistically significant win. Most often, submitting an average over 3 training runs is sufficient.
-
-4. A `train_gpt.py` script and any other dependencies. Note: this must successfully compile and run within the records folder. Broken scripts will not be accepted.
-
-### Non-record Submissions
-
-Submissions are also open to unique and interesting approaches that might not beat the existing SOTA, but still satisfy the 16MB artifact limit. We strongly encourage participants to submit implementations for weird or out-of-the-box ideas, in-progress or unoptimized solutions, so long as they run successfully, or even interesting negative results. We're excited to see what you come up with. We'll still maintain a high bar for non-record submissions, so be sure to justify your ideas and results in detail when submitting.
-
-We also accept non-record submissions to an unlimited compute track for runs that are not intended to meet the 10-minute cutoff. Just note as such in your README file.
-
-Non-record submissions should be made in the same fashion as SOTA records, as described above.
-
-#### PRs on Core Code
-
-The `train_gpt.py` and `train_gpt_mlx.py` scripts are intended as good launching-off points for new participants, not SOTA configs. We'll accept PRs that tune, improve, or simplify these scripts without significantly increasing complexity, but the best models should stay in the `/records` folder.
-
-## Support
-
-
-Join the [OpenAI Discord server](https://discord.com/invite/openai) and visit the Parameter Golf channels (#parameter-golf-discussions, #parameter-golf-announcements) and ask questions.
-
-This repository adapts code from `modded-nanogpt`, see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) for attribution.
+- Run both arms to convergence the narrowing gap suggests the ordering might not survive.
+- Replicate the 5000-iteration runs across seeds; one seed per arm isn't enough to trust the
+  narrowing.
+- Sweep through multiple LLM sizes to see where tying starts to pay.
